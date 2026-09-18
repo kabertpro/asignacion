@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asignación de Grupos y Equipos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-color: #0b1020;
+    --card-bg: rgba(30, 41, 59, 0.5);
+    --card-border: rgba(255, 255, 255, 0.09);
+    --text-color: #f8fafc;
+    --muted-color: #97a2c0;
+    --accent-color: #6366f1;
+    --accent-hover: #7c7ff5;
+    --border-color: #334155;
+
+    --grupo-amarillo: #eab308;
+    --grupo-azul: #3b82f6;
+    --grupo-blanco: #f8fafc;
+    --grupo-rojo: #ef4444;
+    --grupo-naranja: #f97316;
+    --grupo-verde: #22c55e;
+  }
+
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  :root[data-theme="light"] {
+    --bg-color: #eef1fb;
+    --card-bg: rgba(255, 255, 255, 0.55);
+    --card-border: rgba(15, 23, 42, 0.08);
+    --text-color: #0f172a;
+    --muted-color: #4b5568;
+    --border-color: #cbd5e1;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--bg-color);
+    background-image:
+      radial-gradient(ellipse 900px 600px at 12% -10%, rgba(99, 102, 241, 0.35), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 110% 15%, rgba(236, 72, 153, 0.16), transparent 55%),
+      radial-gradient(ellipse 800px 700px at 50% 120%, rgba(34, 197, 94, 0.12), transparent 55%);
+    background-attachment: fixed;
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  .display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+
+  /* ---------- Splash ---------- */
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    background: radial-gradient(ellipse 1000px 700px at 50% 30%, rgba(99,102,241,0.3), transparent 60%), var(--bg-color);
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+  }
+  #splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .splash-wheel {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: conic-gradient(
+      #eab308 0deg 60deg, #3b82f6 60deg 120deg, #f8fafc 120deg 180deg,
+      #ef4444 180deg 240deg, #f97316 240deg 300deg, #22c55e 300deg 360deg);
+    box-shadow: 0 0 30px rgba(99,102,241,0.45);
+    animation: splash-spin 1.1s cubic-bezier(0.6, 0.05, 0.3, 1) infinite;
+  }
+  @keyframes splash-spin { to { transform: rotate(360deg); } }
+
+  .splash-text { font-size: 0.95rem; color: var(--muted-color); letter-spacing: 0.3px; }
+  .splash-title { font-size: 1.3rem; font-weight: 700; }
+
+  /* ---------- Layout ---------- */
+  .container {
+    width: 100%;
+    max-width: 560px;
+    background-color: var(--card-bg);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border-radius: 22px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+    padding: 30px;
+    border: 1px solid var(--card-border);
+    text-align: center;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: containerIn 0.7s 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes containerIn { to { opacity: 1; transform: translateY(0); } }
+
+  .header h1 {
+    font-size: 1.7rem;
+    margin-bottom: 6px;
+    letter-spacing: 0.2px;
+  }
+  .header p {
+    font-size: 0.92rem;
+    color: var(--muted-color);
+    margin-bottom: 22px;
+  }
+
+  /* ---------- Device banner ---------- */
+  .device-banner {
+    display: none;
+    text-align: left;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    gap: 4px;
+  }
+  .device-banner.show { display: flex; flex-direction: column; }
+  .device-banner-title { font-size: 0.85rem; font-weight: 600; color: #a5b4fc; }
+  .device-banner-name { font-size: 0.98rem; font-weight: 700; margin: 2px 0 10px; }
+  .device-banner button {
+    align-self: flex-start;
+    background: var(--accent-color);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .device-banner button:hover { background: var(--accent-hover); }
+
+  .step-card { display: none; animation: fadeIn 0.4s ease-in-out forwards; }
+  .step-card.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .form-group { margin-bottom: 20px; text-align: left; }
+  label { display: block; font-size: 0.88rem; color: var(--muted-color); margin-bottom: 8px; font-weight: 600; }
+
+  select {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    background-color: rgba(15, 23, 42, 0.35);
+    color: var(--text-color);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+  :root[data-theme="light"] select { background-color: rgba(255,255,255,0.6); }
+  select:focus { border-color: var(--accent-color); }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--accent-color);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+  }
+  .btn:hover { background-color: var(--accent-hover); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { background-color: #475569; cursor: not-allowed; }
+
+  .warning-box {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 22px;
+    text-align: left;
+  }
+  .warning-title { color: #ef4444; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .warning-text { font-size: 0.93rem; line-height: 1.5; color: #fca5a5; margin-bottom: 10px; }
+
+  .student-confirm-name {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--text-color);
+    background-color: rgba(255, 255, 255, 0.06);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .btn-group { display: flex; gap: 10px; }
+  .btn-secondary { background-color: #475569; }
+  .btn-secondary:hover { background-color: #334155; }
+
+  /* ---------- Ruleta ---------- */
+  .wheel-wrapper { position: relative; width: 270px; height: 270px; margin: 18px auto; }
+
+  .pointer {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 14px solid transparent; border-right: 14px solid transparent;
+    border-top: 24px solid var(--text-color); z-index: 10;
+    filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.5));
+  }
+
+  .wheel-container {
+    width: 100%; height: 100%; border-radius: 50%;
+    border: 6px solid var(--text-color);
+    box-shadow: 0 0 22px rgba(0,0,0,0.4), 0 0 40px rgba(99,102,241,0.25);
+    position: relative; overflow: hidden;
+    transition: transform 4s cubic-bezier(0.15, 0.85, 0.15, 1);
+  }
+  .wheel-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+  .reveal-box {
+    padding: 25px 20px; border-radius: 18px; margin-top: 20px; text-align: center;
+    color: #000000; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+  .color-badge { font-size: 2.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 10px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+
+  .remember-tag {
+    display: inline-block; padding: 6px 14px; background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px;
+  }
+
+  .group-amarillo { background-color: var(--grupo-amarillo); color: #1e293b; }
+  .group-azul { background-color: var(--grupo-azul); color: #ffffff; }
+  .group-blanco { background-color: var(--grupo-blanco); color: #0f172a; }
+  .group-rojo { background-color: var(--grupo-rojo); color: #ffffff; }
+  .group-naranja { background-color: var(--grupo-naranja); color: #ffffff; }
+  .group-verde { background-color: var(--grupo-verde); color: #ffffff; }
+
+  /* ---------- Footer / créditos ---------- */
+  footer {
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--card-border);
+    font-size: 0.78rem;
+    color: var(--muted-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .credit-line { opacity: 0.85; }
+  .whatsapp-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: #25D366;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 6px 12px;
+    border: 1px solid rgba(37, 211, 102, 0.35);
+    border-radius: 20px;
+    background: rgba(37, 211, 102, 0.08);
+    transition: background 0.2s;
+  }
+  .whatsapp-link:hover { background: rgba(37, 211, 102, 0.16); }
+
+  @media (max-width: 420px) {
+    .container { padding: 22px 18px; }
+    .wheel-wrapper { width: 230px; height: 230px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="splash-wheel"></div>
+  <div class="splash-title display">Asignación de Equipos</div>
+  <div class="splash-text" id="splash-text">Cargando plataforma...</div>
+</div>
+
+<div class="container">
+  <div class="header">
+    <h1 class="display">Asignación de Equipos</h1>
+    <p>Descubre tu color asignado para las actividades</p>
+  </div>
+
+  <div id="device-banner" class="device-banner">
+    <span class="device-banner-title">ℹ️ Este dispositivo ya registró una asignación</span>
+    <span class="device-banner-name" id="device-banner-name"></span>
+    <button onclick="viewRememberedResult()">Ver mi color</button>
+  </div>
+
+  <!-- Paso 1: Selección de Nombre -->
+  <div id="step-select" class="step-card active">
+    <div class="form-group">
+      <label for="student-select">Selecciona tu Nombre completo:</label>
+      <select id="student-select">
+        <option value="" disabled selected>-- Buscar mi nombre --</option>
+      </select>
+    </div>
+    <button class="btn" onclick="goToConfirmation()">Continuar</button>
+  </div>
+
+  <!-- Paso 2: Advertencia de Conciencia -->
+  <div id="step-confirm" class="step-card">
+    <div class="warning-box">
+      <div class="warning-title"><span>⚠️</span> Pregunta a tu Conciencia</div>
+      <div class="student-confirm-name" id="selected-name-display"></div>
+      <p class="warning-text">¿Estás completamente seguro/a de que eres tú?</p>
+      <p class="warning-text" style="font-size: 0.85rem; font-weight: 600;">
+        Cualquier suplantación de identidad será severamente sancionada por la dirección del evento.
+      </p>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="resetSelection()">No soy yo</button>
+      <button class="btn" onclick="startRoulette()">Sí, confirmo que soy yo</button>
+    </div>
+  </div>
+
+  <!-- Paso 3: Ruleta en Vivo -->
+  <div id="step-roulette" class="step-card">
+    <h3 id="roulette-student-name" style="font-size: 1.05rem; color: var(--muted-color); margin-bottom: 10px;"></h3>
+
+    <div class="wheel-wrapper">
+      <div class="pointer"></div>
+      <div id="wheel" class="wheel-container">
+        <svg class="wheel-svg" viewBox="0 0 100 100">
+          <path d="M 50 50 L 100 50 A 50 50 0 0 1 75 93.3 Z" fill="#eab308"/>
+          <path d="M 50 50 L 75 93.3 A 50 50 0 0 1 25 93.3 Z" fill="#3b82f6"/>
+          <path d="M 50 50 L 25 93.3 A 50 50 0 0 1 0 50 Z" fill="#f8fafc"/>
+          <path d="M 50 50 L 0 50 A 50 50 0 0 1 25 6.7 Z" fill="#ef4444"/>
+          <path d="M 50 50 L 25 6.7 A 50 50 0 0 1 75 6.7 Z" fill="#f97316"/>
+          <path d="M 50 50 L 75 6.7 A 50 50 0 0 1 100 50 Z" fill="#22c55e"/>
+        </svg>
+      </div>
+    </div>
+
+    <button id="spin-btn" class="btn" onclick="spinWheel()">Girar Ruleta</button>
+
+    <div id="result-box" class="reveal-box" style="display: none;">
+      <div id="remember-msg" class="remember-tag" style="display: none;">ℹ️ Registro previo encontrado</div>
+      <p style="font-size: 0.9rem;">Tu equipo asignado es:</p>
+      <div id="result-color-name" class="color-badge"></div>
+      <p style="font-size: 0.85rem; opacity: 0.85;">Por favor, toma nota de tu color y preséntate con tu grupo.</p>
+      <p style="font-size: 0.82rem; opacity: 0.8; margin-top: 8px; font-weight: 600;">✅ Tu color ha sido registrado y enviado al docente.</p>
+      <button class="btn" style="margin-top: 15px; background-color: rgba(0,0,0,0.25);" onclick="resetSelection()">Volver al Inicio</button>
+    </div>
+  </div>
+
+  <footer>
+    <span class="credit-line">Plataforma de Verificación de Equipos &copy; 2026</span>
+    <span class="credit-line">Desarrollado por <strong>Kabert Studio Pro</strong> — by LMKE</span>
+    <a class="whatsapp-link" href="https://wa.me/59165665429" target="_blank" rel="noopener noreferrer">
+      💬 WhatsApp +591 65665429
+    </a>
+  </footer>
+</div>
+
+<script>
+  const DB_STUDENTS = {
+    "ANDAVERIS BARRIENTOS AGUSTIN": { color: "AMARILLO", class: "group-amarillo", emoji: "🟡", angle: 30 },
+    "COARITA SALAZAR NICOLE BRITANY": { color: "AMARILLO", class: "group-amarillo", emoji: "🟡", angle: 30 },
+    "CONDORI MORALES BRITANY CRISTEL": { color: "AMARILLO", class: "group-amarillo", emoji: "🟡", angle: 30 },
+    "FLORES CONDE BRISSA NICOLE": { color: "AMARILLO", class: "group-amarillo", emoji: "🟡", angle: 30 },
+    "HOLGUIN ALIAGA ADRIANA VALERIA": { color: "AMARILLO", class: "group-amarillo", emoji: "🟡", angle: 30 },
+    "HUAÑAPACO TORREZ ABRIL ALEJANDRA": { color: "AMARILLO", class: "group-amarillo", emoji: "🟡", angle: 30 },
+    "LOAYZA CALLISAYA FERNANDO ANDRE": { color: "AMARILLO", class: "group-amarillo", emoji: "🟡", angle: 30 },
+
+    "AYALA HEREDIA DANIEL ALFREDO": { color: "AZUL", class: "group-azul", emoji: "🔵", angle: 90 },
+    "CHAVARRIA CAMACHO MATEO ANDRES": { color: "AZUL", class: "group-azul", emoji: "🔵", angle: 90 },
+    "HIGUERAS ANTEZANA FLAVIA MARTINA": { color: "AZUL", class: "group-azul", emoji: "🔵", angle: 90 },
+    "HUAYRAÑA BALAJAR MARIA CELESTE": { color: "AZUL", class: "group-azul", emoji: "🔵", angle: 90 },
+    "KAPA COSME THIAGO ANDRE": { color: "AZUL", class: "group-azul", emoji: "🔵", angle: 90 },
+    "MAMANI CAMPANA CATALINA TRINIDAD": { color: "AZUL", class: "group-azul", emoji: "🔵", angle: 90 },
+    "LOPEZ JIMENEZ LILIANA": { color: "AZUL", class: "group-azul", emoji: "🔵", angle: 90 },
+
+    "ESCOBAR SOLIZ CAMILA": { color: "BLANCO", class: "group-blanco", emoji: "⚪", angle: 150 },
+    "FERNANDEZ MONTEALEGRE ALEX ORLANDO": { color: "BLANCO", class: "group-blanco", emoji: "⚪", angle: 150 },
+    "QUISPE CALDERON SUSANA IRMA": { color: "BLANCO", class: "group-blanco", emoji: "⚪", angle: 150 },
+    "SALDIAS ERGUETA JADE ABIGAIL": { color: "BLANCO", class: "group-blanco", emoji: "⚪", angle: 150 },
+    "VARGAS GUERRA AGUSTINA IVANA": { color: "BLANCO", class: "group-blanco", emoji: "⚪", angle: 150 },
+    "YUJRA APAZA JOSE ANTONIO": { color: "BLANCO", class: "group-blanco", emoji: "⚪", angle: 150 },
+    "ZELADA ESPEJO CAMILA MILAGROS BOLIVIA": { color: "BLANCO", class: "group-blanco", emoji: "⚪", angle: 150 },
+
+    "MENDEZ ALIAGA ZEUS JAVIER": { color: "ROJO", class: "group-rojo", emoji: "🔴", angle: 210 },
+    "MERCADO ARCHONDO MARIA JOSE": { color: "ROJO", class: "group-rojo", emoji: "🔴", angle: 210 },
+    "MORALES ALVAREZ EZEQUIEL VICTOR": { color: "ROJO", class: "group-rojo", emoji: "🔴", angle: 210 },
+    "RAMIREZ SANTA MARIA MAURICIO ADRIEL": { color: "ROJO", class: "group-rojo", emoji: "🔴", angle: 210 },
+    "SOLIZ PERALES LUCIANA MILENKA": { color: "ROJO", class: "group-rojo", emoji: "🔴", angle: 210 },
+    "VILLANUEVA CONDE SOLANGEL FABIANA": { color: "ROJO", class: "group-rojo", emoji: "🔴", angle: 210 },
+    "MEDINA IRIONDO MALAIKA MIRIAN": { color: "ROJO", class: "group-rojo", emoji: "🔴", angle: 210 },
+
+    "OCAMPO VELARDE HEIDDY BOLIVIA": { color: "NARANJA", class: "group-naranja", emoji: "🟠", angle: 270 },
+    "PEÑARANDA ANTONIO VERENICE YESMIN": { color: "NARANJA", class: "group-naranja", emoji: "🟠", angle: 270 },
+    "PERALTA ESCOBAR OSCAR": { color: "NARANJA", class: "group-naranja", emoji: "🟠", angle: 270 },
+    "PRIETO CALDERON BRIZEYDA SAMANTHA": { color: "NARANJA", class: "group-naranja", emoji: "🟠", angle: 270 },
+    "ZEGARRA VILLAREAL DAMARIS DINAI": { color: "NARANJA", class: "group-naranja", emoji: "🟠", angle: 270 },
+
+    "GUTIERREZ LINARES JOAQUIN AUGUSTO": { color: "VERDE", class: "group-verde", emoji: "🟢", angle: 330 },
+    "INARRA CONDORCET ADRIANA CAMILA": { color: "VERDE", class: "group-verde", emoji: "🟢", angle: 330 },
+    "LOPEZ CASTELLON BRISSA LUCIANA": { color: "VERDE", class: "group-verde", emoji: "🟢", angle: 330 },
+    "MARISCAL MOLLINEDO FEDRA SALOME": { color: "VERDE", class: "group-verde", emoji: "🟢", angle: 330 },
+    "MENDEZ ALIAGA URIEL HUGO": { color: "VERDE", class: "group-verde", emoji: "🟢", angle: 330 },
+    "SOLIZ PERALES NATALIA MILENKA": { color: "VERDE", class: "group-verde", emoji: "🟢", angle: 330 },
+    "VALENZUELA BEJAR BIANCA ANTONELA": { color: "VERDE", class: "group-verde", emoji: "🟢", angle: 330 }
+  };
+
+  let currentSelectedStudent = "";
+
+  function safeGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function safeSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* storage unavailable */ }
+  }
+
+  function findRegisteredStudent() {
+    try {
+      for (const name of Object.keys(DB_STUDENTS)) {
+        if (safeGet(`registered_${name}`)) return name;
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const selectElement = document.getElementById("student-select");
+    const sortedNames = Object.keys(DB_STUDENTS).sort((a, b) => a.localeCompare(b));
+
+    sortedNames.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      selectElement.appendChild(opt);
+    });
+
+    const registeredName = findRegisteredStudent();
+    if (registeredName) {
+      document.getElementById("device-banner-name").textContent = registeredName;
+      document.getElementById("device-banner").classList.add("show");
+    }
+
+    // Splash: un solo momento orquestado, luego revela la app
+    setTimeout(() => {
+      document.getElementById("splash").classList.add("hidden");
+    }, 1100);
+  });
+
+  function viewRememberedResult() {
+    const registeredName = findRegisteredStudent();
+    if (!registeredName) return;
+    currentSelectedStudent = registeredName;
+    document.getElementById("student-select").value = registeredName;
+    startRoulette(true);
+  }
+
+  function goToConfirmation() {
+    const selectElement = document.getElementById("student-select");
+    const selectedName = selectElement.value;
+
+    if (!selectedName) {
+      alert("Por favor, selecciona tu nombre de la lista para continuar.");
+      return;
+    }
+
+    currentSelectedStudent = selectedName;
+    const previousSelection = safeGet(`registered_${selectedName}`);
+
+    if (previousSelection) {
+      startRoulette(true);
+    } else {
+      document.getElementById("selected-name-display").textContent = selectedName;
+      switchStep("step-select", "step-confirm");
+    }
+  }
+
+  function startRoulette(isSecondTime = false) {
+    document.getElementById("roulette-student-name").textContent = currentSelectedStudent;
+    document.getElementById("result-box").style.display = "none";
+    document.getElementById("spin-btn").style.display = "block";
+    document.getElementById("spin-btn").disabled = false;
+
+    const wheel = document.getElementById("wheel");
+    wheel.style.transition = "none";
+    wheel.style.transform = "rotate(0deg)";
+
+    const currentActive = document.querySelector(".step-card.active").id;
+    switchStep(currentActive, "step-roulette");
+
+    if (isSecondTime) {
+      // Ya giró antes: mostramos el resultado directamente sin re-girar
+      const studentInfo = DB_STUDENTS[currentSelectedStudent];
+      document.getElementById("remember-msg").style.display = "inline-block";
+      document.getElementById("remember-msg").textContent = "⚠️ Ya habías verificado tu selección anteriormente";
+      const finalRotation = 360 * 3 + (360 - studentInfo.angle);
+      wheel.style.transition = "transform 1.4s cubic-bezier(0.15, 0.85, 0.15, 1)";
+      requestAnimationFrame(() => { wheel.style.transform = `rotate(${finalRotation}deg)`; });
+      document.getElementById("spin-btn").style.display = "none";
+      setTimeout(() => showResultBox(studentInfo), 1500);
+    } else {
+      document.getElementById("remember-msg").style.display = "none";
+    }
+  }
+
+  function spinWheel() {
+    const spinBtn = document.getElementById("spin-btn");
+    spinBtn.disabled = true;
+
+    const studentInfo = DB_STUDENTS[currentSelectedStudent];
+    const targetAngle = studentInfo.angle;
+
+    const extraSpins = 360 * 5;
+    const finalRotation = extraSpins + (360 - targetAngle);
+
+    const wheel = document.getElementById("wheel");
+    wheel.style.transition = "transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)";
+    wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+    safeSet(`registered_${currentSelectedStudent}`, "true");
+
+    setTimeout(() => { showResultBox(studentInfo); }, 4100);
+  }
+
+  function showResultBox(studentInfo) {
+    const resultBox = document.getElementById("result-box");
+    const colorNameDisplay = document.getElementById("result-color-name");
+
+    resultBox.className = "reveal-box " + studentInfo.class;
+    colorNameDisplay.textContent = `${studentInfo.emoji} ${studentInfo.color}`;
+
+    document.getElementById("spin-btn").style.display = "none";
+    resultBox.style.display = "block";
+  }
+
+  function switchStep(fromId, toId) {
+    document.getElementById(fromId).classList.remove("active");
+    document.getElementById(toId).classList.add("active");
+  }
+
+  function resetSelection() {
+    document.getElementById("student-select").value = "";
+    const currentActive = document.querySelector(".step-card.active").id;
+    switchStep(currentActive, "step-select");
+  }
+</script>
+</body>
+</html>
