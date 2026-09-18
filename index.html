@@ -296,12 +296,6 @@
     <p>Descubre tu color asignado para las actividades</p>
   </div>
 
-  <div id="device-banner" class="device-banner">
-    <span class="device-banner-title">ℹ️ Este dispositivo ya registró una asignación</span>
-    <span class="device-banner-name" id="device-banner-name"></span>
-    <button onclick="viewRememberedResult()">Ver mi color</button>
-  </div>
-
   <!-- Paso 1: Selección de Nombre -->
   <div id="step-select" class="step-card active">
     <div class="form-group">
@@ -353,7 +347,7 @@
       <div id="remember-msg" class="remember-tag" style="display: none;">ℹ️ Registro previo encontrado</div>
       <p style="font-size: 0.9rem;">Tu equipo asignado es:</p>
       <div id="result-color-name" class="color-badge"></div>
-      <p style="font-size: 0.85rem; opacity: 0.85;">Por favor, toma nota de tu color y preséntate con tu grupo.</p>
+      <p style="font-size: 0.85rem; opacity: 0.85;">¡Mucho ánimo! Coordina con tu equipo y den lo mejor de ustedes.</p>
       <p style="font-size: 0.82rem; opacity: 0.8; margin-top: 8px; font-weight: 600;">✅ Tu color ha sido registrado y enviado al docente.</p>
       <button class="btn" style="margin-top: 15px; background-color: rgba(0,0,0,0.25);" onclick="resetSelection()">Volver al Inicio</button>
     </div>
@@ -435,6 +429,8 @@
     return null;
   }
 
+  let deviceLocked = false;
+
   window.addEventListener("DOMContentLoaded", () => {
     const selectElement = document.getElementById("student-select");
     const sortedNames = Object.keys(DB_STUDENTS).sort((a, b) => a.localeCompare(b));
@@ -448,8 +444,10 @@
 
     const registeredName = findRegisteredStudent();
     if (registeredName) {
-      document.getElementById("device-banner-name").textContent = registeredName;
-      document.getElementById("device-banner").classList.add("show");
+      // Este dispositivo ya se usó: se bloquea la selección y solo se muestra su color.
+      deviceLocked = true;
+      currentSelectedStudent = registeredName;
+      showLockedResult();
     }
 
     // Splash: un solo momento orquestado, luego revela la app
@@ -458,12 +456,23 @@
     }, 1100);
   });
 
-  function viewRememberedResult() {
-    const registeredName = findRegisteredStudent();
-    if (!registeredName) return;
-    currentSelectedStudent = registeredName;
-    document.getElementById("student-select").value = registeredName;
-    startRoulette(true);
+  function showLockedResult() {
+    const studentInfo = DB_STUDENTS[currentSelectedStudent];
+
+    document.getElementById("roulette-student-name").textContent = currentSelectedStudent;
+    document.getElementById("spin-btn").style.display = "none";
+    document.getElementById("remember-msg").style.display = "none";
+
+    const wheel = document.getElementById("wheel");
+    const finalRotation = 360 - studentInfo.angle;
+    wheel.style.transition = "none";
+    wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+    document.getElementById("step-select").classList.remove("active");
+    document.getElementById("step-confirm").classList.remove("active");
+    document.getElementById("step-roulette").classList.add("active");
+
+    showResultBox(studentInfo);
   }
 
   function goToConfirmation() {
@@ -529,6 +538,7 @@
     wheel.style.transform = `rotate(${finalRotation}deg)`;
 
     safeSet(`registered_${currentSelectedStudent}`, "true");
+    deviceLocked = true;
 
     setTimeout(() => { showResultBox(studentInfo); }, 4100);
   }
@@ -550,6 +560,11 @@
   }
 
   function resetSelection() {
+    if (deviceLocked) {
+      // El dispositivo ya registró una selección: no se permite elegir otro nombre.
+      showLockedResult();
+      return;
+    }
     document.getElementById("student-select").value = "";
     const currentActive = document.querySelector(".step-card.active").id;
     switchStep(currentActive, "step-select");
